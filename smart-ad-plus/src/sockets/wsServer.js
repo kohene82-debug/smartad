@@ -81,14 +81,25 @@ const initWebSocket = (server) => {
 
   // Heartbeat: ping all clients every 30s, drop dead ones
   const heartbeat = setInterval(() => {
-    wss.clients.forEach((ws) => {
-      if (!ws.isAlive) return ws.terminate();
-      ws.isAlive = false;
-      ws.ping();
-    });
+    try {
+      wss.clients.forEach((ws) => {
+        if (!ws.isAlive) {
+          logger.warn('WS client unresponsive — terminating', { userId: ws.userId });
+          return ws.terminate();
+        }
+        ws.isAlive = false;
+        ws.ping();
+      });
+    } catch (err) {
+      logger.error('WS heartbeat error', { error: err.message, stack: err.stack });
+    }
   }, 30000);
 
   wss.on('close', () => clearInterval(heartbeat));
+
+  wss.on('error', (err) => {
+    logger.error('WebSocket server error', { error: err.message, stack: err.stack });
+  });
 
   logger.info('WebSocket server initialized at /ws');
 };

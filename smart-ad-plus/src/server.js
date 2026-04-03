@@ -27,12 +27,22 @@ const shutdown = async (signal) => {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT',  () => shutdown('SIGINT'));
 
-process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled promise rejection', { reason: String(reason) });
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled promise rejection', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack:  reason instanceof Error ? reason.stack  : undefined,
+    promise: String(promise),
+  });
+  // Treat unhandled rejections as fatal so the crash is visible
+  process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {
-  logger.error('Uncaught exception', { error: err.message });
+  logger.error('Uncaught exception — process will exit', {
+    error: err.message,
+    stack: err.stack,
+    name:  err.name,
+  });
   process.exit(1);
 });
 
@@ -51,6 +61,14 @@ const start = async () => {
       logger.warn('⚠️  Redis unavailable — rate limiting will use memory store', { error: err.message });
     }
 
+    server.on('error', (err) => {
+      logger.error('HTTP server error', {
+        error: err.message,
+        stack: err.stack,
+        code:  err.code,
+      });
+    });
+
     server.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚀 Smart Ad+ backend running`, {
         port: PORT,
@@ -59,7 +77,11 @@ const start = async () => {
       });
     });
   } catch (err) {
-    logger.error('❌ Startup failed', { error: err.message });
+    logger.error('❌ Startup failed', {
+      error: err.message,
+      stack: err.stack,
+      name:  err.name,
+    });
     process.exit(1);
   }
 };

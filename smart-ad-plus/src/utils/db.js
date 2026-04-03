@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const logger = require('./logger');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -10,8 +11,12 @@ const pool = new Pool({
     : false,
 });
 
-pool.on('error', (err) => {
-  console.error('Unexpected PostgreSQL pool error:', err);
+pool.on('error', (err, client) => {
+  logger.error('Unexpected PostgreSQL pool error', {
+    error: err.message,
+    stack: err.stack,
+    code:  err.code,
+  });
 });
 
 // Helper: run a query
