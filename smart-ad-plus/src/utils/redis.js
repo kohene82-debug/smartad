@@ -1,4 +1,5 @@
 const Redis = require('ioredis');
+const logger = require('./logger');
 
 let redis;
 
@@ -8,13 +9,26 @@ const getRedis = () => {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       retryStrategy: (times) => {
-        if (times > 10) return null;
-        return Math.min(times * 100, 3000);
+        if (times > 10) {
+          logger.error('Redis retry limit exceeded — giving up', { attempts: times });
+          return null; // stop retrying; ioredis will emit an error event
+        }
+        const delay = Math.min(times * 100, 3000);
+        logger.warn('Redis reconnecting', { attempt: times, delayMs: delay });
+        return delay;
       },
     });
 
-    redis.on('connect', () => console.log('✅ Redis connected'));
-    redis.on('error', (err) => console.error('❌ Redis error:', err.message));
+    redis.on('connect', () => logger.info('✅ Redis connected'));
+    redis.on('ready',   () => logger.info('Redis client ready'));
+    redis.on('error',   (err) => logger.error('Redis client error', {
+      error: err.message,
+      stack: err.stack,
+      code:  err.code,
+    }));
+    redis.on('close',        () => logger.warn('Redis connection closed'));
+    redis.on('reconnecting', () => logger.warn('Redis reconnecting…'));
+    redis.on('end',          () => logger.error('Redis connection ended — no more reconnects will be attempted'));
   }
   return redis;
 };
