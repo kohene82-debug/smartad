@@ -52,6 +52,14 @@ const sendOtp = async (phone) => {
   }
 
   // Production: send via Twilio
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    throw new Error(
+      'Twilio credentials are not configured. ' +
+      'Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables, ' +
+      'or enable OTP_MOCK_MODE=true for local development.'
+    );
+  }
+
   try {
     const twilio = require('twilio')(
       process.env.TWILIO_ACCOUNT_SID,
