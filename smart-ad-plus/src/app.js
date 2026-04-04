@@ -56,6 +56,11 @@ if (process.env.NODE_ENV !== 'test') {
 // ─── GLOBAL RATE LIMIT ────────────────────────────────────────────────────────
 app.use(globalLimiter);
 
+// ─── PING (smoke-test — no auth, no DB, no Redis) ─────────────────────────────
+app.get('/ping', (req, res) => {
+  res.send('pong');
+});
+
 // ─── HEALTH ───────────────────────────────────────────────────────────────────
 app.get('/health', async (req, res) => {
   try {
