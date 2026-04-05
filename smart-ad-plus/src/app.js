@@ -68,11 +68,11 @@ app.get('/health', async (req, res) => {
 });
 
 // ─── ROUTES ───────────────────────────────────────────────────────────────────
-app.use('/auth',       authRoutes);
-app.use('/ads',        adsRoutes);
-app.use('/users',      userRoutes);
-app.use('/advertiser', advertiserRoutes);
-app.use('/admin',      adminRoutes);
+app.use('/api/auth',       authRoutes);
+app.use('/api/ads',        adsRoutes);
+app.use('/api/users',      userRoutes);
+app.use('/api/advertiser', advertiserRoutes);
+app.use('/api/admin',      adminRoutes);
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((req, res) => {
