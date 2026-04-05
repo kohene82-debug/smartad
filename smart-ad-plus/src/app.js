@@ -18,6 +18,10 @@ const adminRoutes      = require('./routes/admin');
 
 const app = express();
 
+// Trust Railway's reverse proxy so Express reads the real client IP
+// from the X-Forwarded-For header, which is required for rate limiting.
+app.set('trust proxy', 1);
+
 // ─── SECURITY ─────────────────────────────────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: {
