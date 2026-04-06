@@ -6,6 +6,60 @@ const { broadcastToUser } = require('../sockets/wsServer');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
 
+// GET /dashboard/stats
+const getDashboardStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { rows: [user] } = await query(
+      `SELECT id, phone, balance, total_earned FROM users WHERE id = $1`,
+      [userId]
+    );
+
+    if (!user) {
+      return response.notFound(res, 'User not found');
+    }
+
+    const { rows: [impressionStats] } = await query(
+      `SELECT COUNT(*) AS ads_viewed FROM impressions WHERE user_id = $1`,
+      [userId]
+    );
+
+    const { rows: [clickStats] } = await query(
+      `SELECT COUNT(*) AS ads_clicked FROM clicks WHERE user_id = $1`,
+      [userId]
+    );
+
+    const { rows: [rewardStats] } = await query(
+      `SELECT COALESCE(SUM(user_reward), 0) AS total_rewards
+       FROM impressions
+       WHERE user_id = $1 AND rewarded = TRUE`,
+      [userId]
+    );
+
+    const { rows: [withdrawalStats] } = await query(
+      `SELECT COUNT(*) AS pending_withdrawals
+       FROM withdrawals
+       WHERE user_id = $1 AND status = 'PENDING'`,
+      [userId]
+    );
+
+    return response.success(res, {
+      userId: user.id,
+      phone: user.phone,
+      balance: parseFloat(user.balance),
+      totalEarned: parseFloat(user.total_earned),
+      adsViewed: parseInt(impressionStats.ads_viewed),
+      adsClicked: parseInt(clickStats.ads_clicked),
+      totalRewards: parseFloat(rewardStats.total_rewards),
+      pendingWithdrawals: parseInt(withdrawalStats.pending_withdrawals),
+    });
+  } catch (err) {
+    logger.error('getDashboardStats error', { error: err.message, stack: err.stack });
+    return response.serverError(res, 'Failed to fetch dashboard stats');
+  }
+};
+
 // GET /users/rewards
 const getRewards = async (req, res) => {
   try {
@@ -154,4 +208,4 @@ const deleteData = async (req, res) => {
   }
 };
 
-module.exports = { getRewards, withdraw, deleteData };
+module.exports = { getDashboardStats, getRewards, withdraw, deleteData };
